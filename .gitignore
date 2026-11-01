@@ -1,0 +1,14 @@
+# Dependencias y builds
+node_modules/
+dist/
+build/
+.cache/
+
+# Go
+server/bin/
+*.exe
+
+# Entorno y logs
+.env
+*.log
+npm-debug.log*

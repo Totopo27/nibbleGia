@@ -1,0 +1,49 @@
+{
+  "id": "capsule-logic-01",
+  "topicId": "topic-logic",
+  "title": "La Falacia del Hombre de Paja",
+  "order": 1,
+  "estimatedMinutes": 4,
+  "steps": [
+    {
+      "id": "step-01",
+      "order": 1,
+      "narrative": "En cualquier debate o conversación, distorsionar la postura de tu interlocutor para que parezca ridícula y fácil de refutar se conoce como la Falacia del Hombre de Paja.",
+      "imageUrl": "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80",
+      "check": null
+    },
+    {
+      "id": "step-02",
+      "order": 2,
+      "narrative": "¿Por qué es tan común? Porque construir un muñeco de paja indefenso requiere mucho menos rigor que responder al argumento real más sofisticado.",
+      "imageUrl": null,
+      "check": null
+    },
+    {
+      "id": "step-03",
+      "order": 3,
+      "narrative": "Pongamos a prueba tu intuición con un caso práctico cotidiano:",
+      "imageUrl": null,
+      "check": {
+        "id": "chk-01",
+        "question": "Ana propone: 'Deberíamos destinar más presupuesto escolar a bibliotecas'. Carlos responde: '¿O sea que quieres dejar a los niños sin material deportivo y educación física?'. ¿Qué falacia comete Carlos?",
+        "options": [
+          {
+            "id": "opt-a",
+            "text": "Ad Hominem (atacar a la persona)"
+          },
+          {
+            "id": "opt-b",
+            "text": "Hombre de Paja (tergiversar la propuesta original)"
+          },
+          {
+            "id": "opt-c",
+            "text": "Falsa Causa (correlación no es causalidad)"
+          }
+        ],
+        "correctOptionId": "opt-b",
+        "explanation": "Carlos exagera y distorsiona lo que dijo Ana, fingiendo que ella propuso eliminar el deporte, cuando solo habló de bibliotecas."
+      }
+    }
+  ]
+}
