@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"nibble-server/internal/storage"
 )
@@ -30,6 +31,8 @@ func (s *Server) routes() {
 	s.router.HandleFunc("GET /api/topics", s.handleGetTopics)
 	s.router.HandleFunc("GET /api/capsules/{id}", s.handleGetCapsule)
 	s.router.HandleFunc("POST /api/capsules/{capsuleId}/checks/{checkId}/attempts", s.handleCheckAttempt)
+	s.router.HandleFunc("GET /api/profile/streak", s.handleGetStreak)
+	s.router.HandleFunc("POST /api/progress/complete-capsule", s.handleCompleteCapsule)
 }
 
 // Handler devuelve el handler HTTP envuelto con los middlewares globales.
@@ -115,4 +118,44 @@ func (s *Server) handleCheckAttempt(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(attempt)
+}
+
+func (s *Server) handleGetStreak(w http.ResponseWriter, r *http.Request) {
+	streak, err := s.repo.GetStreak()
+	if err != nil {
+		http.Error(w, `{"error":"failed_to_fetch_streak"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(streak)
+}
+
+type CompleteCapsuleRequest struct {
+	CapsuleID string `json:"capsuleId"`
+}
+
+func (s *Server) handleCompleteCapsule(w http.ResponseWriter, r *http.Request) {
+	var req CompleteCapsuleRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.CapsuleID == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid_request_capsule_id_required",
+		})
+		return
+	}
+
+	streak, err := s.repo.CompleteCapsule(req.CapsuleID, time.Now())
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(streak)
 }

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { MobileLayout } from "./components/MobileLayout.tsx";
 import { CapsuleRunner } from "./features/capsule/CapsuleRunner.tsx";
+import { StreakCelebrationModal } from "./features/streak/StreakCelebrationModal.tsx";
 import { apiService } from "./services/api.ts";
-import type { Topic, Capsule } from "./types/domain.ts";
+import type { Topic, Capsule, StreakState } from "./types/domain.ts";
 import { Brain, Hourglass, Compass, ChevronRight, BookOpen, Clock, AlertCircle } from "lucide-react";
 
 export const App: React.FC = () => {
@@ -11,18 +12,19 @@ export const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeCapsule, setActiveCapsule] = useState<Capsule | null>(null);
   const [loadingCapsule, setLoadingCapsule] = useState<boolean>(false);
-  const [streakCount, setStreakCount] = useState<number>(1);
+  const [streak, setStreak] = useState<StreakState>({ totalDays: 1, currentStreak: 1, maxStreak: 1 });
+  const [showCelebration, setShowCelebration] = useState<boolean>(false);
 
   useEffect(() => {
-    apiService
-      .getTopics()
-      .then((data) => {
-        setTopics(data);
+    Promise.all([apiService.getTopics(), apiService.getStreak()])
+      .then(([topicsData, streakData]) => {
+        setTopics(topicsData);
+        setStreak(streakData);
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Error cargando temas:", err);
-        setError("No pudimos conectar con el servidor local. Asegúrate de que el backend de Go esté corriendo en :8080");
+        console.error("Error cargando datos iniciales:", err);
+        setError("No pudimos conectar con el servidor local en :8080. Puedes revisar el backend.");
         setLoading(false);
       });
   }, []);
@@ -40,9 +42,24 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleCompleteCapsule = (_accuracyRate: number) => {
-    // Al completar la cápsula incrementamos feedback de racha de forma optimista
-    setStreakCount((prev) => prev);
+  const handleCompleteCapsule = async (_accuracyRate: number) => {
+    if (!activeCapsule) return;
+
+    try {
+      // Registrar la lección completada en el servidor y sincronizar la racha
+      const updatedStreak = await apiService.completeCapsule(activeCapsule.id);
+      setStreak(updatedStreak);
+      setShowCelebration(true);
+    } catch (err) {
+      console.error("Error actualizando racha:", err);
+      // Fallback local optimista si la red falla
+      setStreak((prev) => ({
+        ...prev,
+        currentStreak: prev.currentStreak + 1,
+        totalDays: prev.totalDays + 1,
+      }));
+      setShowCelebration(true);
+    }
   };
 
   const getIcon = (iconName: string) => {
@@ -57,7 +74,15 @@ export const App: React.FC = () => {
   };
 
   return (
-    <MobileLayout streakCount={streakCount}>
+    <MobileLayout streakCount={streak.currentStreak}>
+      {showCelebration && (
+        <StreakCelebrationModal
+          currentStreak={streak.currentStreak}
+          totalDays={streak.totalDays}
+          onClose={() => setShowCelebration(false)}
+        />
+      )}
+
       {activeCapsule ? (
         <CapsuleRunner
           capsule={activeCapsule}

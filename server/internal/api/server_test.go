@@ -150,6 +150,52 @@ func TestCheckAttemptEndpoint(t *testing.T) {
 	}
 }
 
+func TestStreakAndCompletionEndpoints(t *testing.T) {
+	repo := storage.NewMemoryRepository()
+	server := api.NewServer(repo)
+
+	// Obtener racha inicial
+	reqStreak := httptest.NewRequest(http.MethodGet, "/api/profile/streak", nil)
+	recStreak := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(recStreak, reqStreak)
+
+	if recStreak.Code != http.StatusOK {
+		t.Fatalf("Código esperado 200, obtenido %d", recStreak.Code)
+	}
+
+	var initialStreak domain.StreakState
+	if err := json.NewDecoder(recStreak.Body).Decode(&initialStreak); err != nil {
+		t.Fatalf("Error decodificando racha inicial: %v", err)
+	}
+
+	if initialStreak.CurrentStreak < 1 {
+		t.Errorf("Racha inicial esperada >= 1, obtenida %d", initialStreak.CurrentStreak)
+	}
+
+	// Completar cápsula existente
+	completeBody, _ := json.Marshal(map[string]string{
+		"capsuleId": "capsule-logic-01",
+	})
+	reqComp := httptest.NewRequest(http.MethodPost, "/api/progress/complete-capsule", bytes.NewReader(completeBody))
+	recComp := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(recComp, reqComp)
+
+	if recComp.Code != http.StatusOK {
+		t.Fatalf("Código esperado 200 al completar cápsula, obtenido %d", recComp.Code)
+	}
+
+	var updatedStreak domain.StreakState
+	if err := json.NewDecoder(recComp.Body).Decode(&updatedStreak); err != nil {
+		t.Fatalf("Error decodificando racha actualizada: %v", err)
+	}
+
+	if updatedStreak.TotalDays < 1 {
+		t.Errorf("TotalDays esperado >= 1, obtenido %d", updatedStreak.TotalDays)
+	}
+}
+
 func TestCORSOptionsPreflight(t *testing.T) {
 	repo := storage.NewMemoryRepository()
 	server := api.NewServer(repo)

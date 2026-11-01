@@ -1,4 +1,4 @@
-import type { Topic, Capsule, CheckAttempt } from "../types/domain.ts";
+import type { Topic, Capsule, CheckAttempt, StreakState } from "../types/domain.ts";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -39,5 +39,11 @@ export const apiService = {
     request<CheckAttempt>(`/api/capsules/${capsuleId}/checks/${checkId}/attempts`, {
       method: "POST",
       body: JSON.stringify({ selectedOptionId }),
+    }),
+  getStreak: () => request<StreakState>("/api/profile/streak"),
+  completeCapsule: (capsuleId: string) =>
+    request<StreakState>("/api/progress/complete-capsule", {
+      method: "POST",
+      body: JSON.stringify({ capsuleId }),
     }),
 };

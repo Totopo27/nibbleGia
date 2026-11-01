@@ -3,25 +3,30 @@ package storage
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"nibble-server/internal/domain"
 )
 
-// Repository define el contrato de acceso a datos para temas y cápsulas.
+// Repository define el contrato de acceso a datos para temas, cápsulas y racha.
 type Repository interface {
 	GetTopics() ([]domain.Topic, error)
 	GetCapsuleByID(id string) (*domain.Capsule, error)
 	GetCheck(capsuleID, checkID string) (*domain.Check, error)
+	GetStreak() (*domain.StreakState, error)
+	CompleteCapsule(capsuleID string, completedAt time.Time) (*domain.StreakState, error)
 }
 
 // MemoryRepository es una implementación en memoria y segura para concurrencia.
 type MemoryRepository struct {
-	mu       sync.RWMutex
-	topics   []domain.Topic
-	capsules map[string]domain.Capsule
+	mu             sync.RWMutex
+	topics         []domain.Topic
+	capsules       map[string]domain.Capsule
+	streak         domain.StreakState
+	completedItems map[string]time.Time
 }
 
-// NewMemoryRepository crea una nueva instancia con un catálogo inicial curado.
+// NewMemoryRepository crea una nueva instancia con un catálogo inicial curado y racha inicial.
 func NewMemoryRepository() *MemoryRepository {
 	img1 := "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80"
 
@@ -89,8 +94,10 @@ func NewMemoryRepository() *MemoryRepository {
 	}
 
 	return &MemoryRepository{
-		topics:   initialTopics,
-		capsules: initialCapsules,
+		topics:         initialTopics,
+		capsules:       initialCapsules,
+		streak:         domain.StreakState{TotalDays: 1, CurrentStreak: 1, MaxStreak: 1},
+		completedItems: make(map[string]time.Time),
 	}
 }
 
@@ -133,4 +140,29 @@ func (r *MemoryRepository) GetCheck(capsuleID, checkID string) (*domain.Check, e
 	}
 
 	return nil, errors.New("desafío de validación no encontrado")
+}
+
+// GetStreak devuelve el estado actual de la racha del usuario.
+func (r *MemoryRepository) GetStreak() (*domain.StreakState, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	s := r.streak
+	return &s, nil
+}
+
+// CompleteCapsule registra la lección como terminada y recalcula la racha diaria.
+func (r *MemoryRepository) CompleteCapsule(capsuleID string, completedAt time.Time) (*domain.StreakState, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, exists := r.capsules[capsuleID]; !exists {
+		return nil, errors.New("la cápsula no existe en el catálogo")
+	}
+
+	r.completedItems[capsuleID] = completedAt
+	r.streak.RecordCompletion(completedAt)
+
+	s := r.streak
+	return &s, nil
 }
