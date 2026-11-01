@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -94,6 +95,58 @@ func TestGetCapsuleEndpoint(t *testing.T) {
 
 	if recNotFound.Code != http.StatusNotFound {
 		t.Fatalf("Código esperado 404, obtenido %d", recNotFound.Code)
+	}
+}
+
+func TestCheckAttemptEndpoint(t *testing.T) {
+	repo := storage.NewMemoryRepository()
+	server := api.NewServer(repo)
+
+	// Intento con respuesta correcta (opt-b)
+	bodyCorrect, _ := json.Marshal(map[string]string{
+		"selectedOptionId": "opt-b",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/capsules/capsule-logic-01/checks/chk-01/attempts", bytes.NewReader(bodyCorrect))
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Código esperado 200, obtenido %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var attempt domain.CheckAttempt
+	if err := json.NewDecoder(rec.Body).Decode(&attempt); err != nil {
+		t.Fatalf("Error decodificando intento: %v", err)
+	}
+
+	if !attempt.IsCorrect {
+		t.Errorf("Se esperaba que el intento fuera marcado como correcto")
+	}
+	if attempt.SelectedOptionID != "opt-b" {
+		t.Errorf("Opción esperada 'opt-b', obtenida '%s'", attempt.SelectedOptionID)
+	}
+
+	// Intento con respuesta incorrecta (opt-a)
+	bodyIncorrect, _ := json.Marshal(map[string]string{
+		"selectedOptionId": "opt-a",
+	})
+	reqInc := httptest.NewRequest(http.MethodPost, "/api/capsules/capsule-logic-01/checks/chk-01/attempts", bytes.NewReader(bodyIncorrect))
+	recInc := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(recInc, reqInc)
+
+	if recInc.Code != http.StatusOK {
+		t.Fatalf("Código esperado 200, obtenido %d", recInc.Code)
+	}
+
+	var attemptInc domain.CheckAttempt
+	if err := json.NewDecoder(recInc.Body).Decode(&attemptInc); err != nil {
+		t.Fatalf("Error decodificando intento: %v", err)
+	}
+
+	if attemptInc.IsCorrect {
+		t.Errorf("Se esperaba que el intento fuera marcado como incorrecto")
 	}
 }
 

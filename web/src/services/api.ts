@@ -1,4 +1,4 @@
-import type { Topic, Capsule } from "../types/domain.ts";
+import type { Topic, Capsule, CheckAttempt } from "../types/domain.ts";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -35,4 +35,9 @@ export const apiService = {
   checkHealth: () => request<{ status: string }>("/api/health"),
   getTopics: () => request<Topic[]>("/api/topics"),
   getCapsule: (id: string) => request<Capsule>(`/api/capsules/${id}`),
+  submitCheckAttempt: (capsuleId: string, checkId: string, selectedOptionId: string) =>
+    request<CheckAttempt>(`/api/capsules/${capsuleId}/checks/${checkId}/attempts`, {
+      method: "POST",
+      body: JSON.stringify({ selectedOptionId }),
+    }),
 };

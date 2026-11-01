@@ -11,6 +11,7 @@ import (
 type Repository interface {
 	GetTopics() ([]domain.Topic, error)
 	GetCapsuleByID(id string) (*domain.Capsule, error)
+	GetCheck(capsuleID, checkID string) (*domain.Check, error)
 }
 
 // MemoryRepository es una implementación en memoria y segura para concurrencia.
@@ -113,4 +114,23 @@ func (r *MemoryRepository) GetCapsuleByID(id string) (*domain.Capsule, error) {
 		return nil, errors.New("cápsula no encontrada")
 	}
 	return &capsule, nil
+}
+
+// GetCheck busca un desafío interactivo específico dentro de una cápsula.
+func (r *MemoryRepository) GetCheck(capsuleID, checkID string) (*domain.Check, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	capsule, found := r.capsules[capsuleID]
+	if !found {
+		return nil, errors.New("cápsula no encontrada")
+	}
+
+	for _, step := range capsule.Steps {
+		if step.Check != nil && step.Check.ID == checkID {
+			return step.Check, nil
+		}
+	}
+
+	return nil, errors.New("desafío de validación no encontrado")
 }
