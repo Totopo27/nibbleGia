@@ -29,6 +29,7 @@ func NewServer(repo storage.Repository) *Server {
 func (s *Server) routes() {
 	s.router.HandleFunc("GET /api/health", s.handleHealth)
 	s.router.HandleFunc("GET /api/topics", s.handleGetTopics)
+	s.router.HandleFunc("GET /api/topics/{topicId}/capsules", s.handleGetCapsulesByTopic)
 	s.router.HandleFunc("GET /api/capsules/{id}", s.handleGetCapsule)
 	s.router.HandleFunc("POST /api/capsules/{capsuleId}/checks/{checkId}/attempts", s.handleCheckAttempt)
 	s.router.HandleFunc("GET /api/profile/streak", s.handleGetStreak)
@@ -57,6 +58,23 @@ func (s *Server) handleGetTopics(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(topics)
+}
+
+func (s *Server) handleGetCapsulesByTopic(w http.ResponseWriter, r *http.Request) {
+	topicID := r.PathValue("topicId")
+	if topicID == "" {
+		http.Error(w, `{"error":"missing_topic_id"}`, http.StatusBadRequest)
+		return
+	}
+
+	capsules, err := s.repo.GetCapsulesByTopic(topicID)
+	if err != nil {
+		http.Error(w, `{"error":"failed_to_fetch_capsules"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(capsules)
 }
 
 func (s *Server) handleGetCapsule(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +112,7 @@ func (s *Server) handleCheckAttempt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req CheckAttemptRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB límite
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.SelectedOptionID == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -108,7 +127,7 @@ func (s *Server) handleCheckAttempt(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
+			"error": "check_or_capsule_not_found",
 		})
 		return
 	}
@@ -137,6 +156,7 @@ type CompleteCapsuleRequest struct {
 
 func (s *Server) handleCompleteCapsule(w http.ResponseWriter, r *http.Request) {
 	var req CompleteCapsuleRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB límite
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.CapsuleID == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -151,7 +171,7 @@ func (s *Server) handleCompleteCapsule(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
+			"error": "capsule_not_found_or_invalid",
 		})
 		return
 	}

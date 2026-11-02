@@ -12,3 +12,5 @@ server/bin/
 .env
 *.log
 npm-debug.log*
+.atl/*.cache.json
+

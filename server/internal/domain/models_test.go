@@ -66,14 +66,16 @@ func TestStreakCalculation(t *testing.T) {
 		t.Errorf("Mismo día: la racha no debió duplicarse, obtenida %d", streak.CurrentStreak)
 	}
 
-	// Día 2 consecutivo
-	streak.RecordCompletion(baseTime.Add(24 * time.Hour))
+	// Día 2 consecutivo en diferente hora (ej. 23 horas después o en horario nocturno del día 2)
+	day2 := time.Date(2026, 11, 2, 21, 30, 0, 0, time.UTC)
+	streak.RecordCompletion(day2)
 	if streak.CurrentStreak != 2 || streak.MaxStreak != 2 {
 		t.Errorf("Día 2: racha esperada 2, obtenida %d", streak.CurrentStreak)
 	}
 
-	// Salto de 3 días (racha rota)
-	streak.RecordCompletion(baseTime.Add(4 * 24 * time.Hour))
+	// Salto de 3 días (racha rota: día 5)
+	day5 := time.Date(2026, 11, 5, 8, 0, 0, 0, time.UTC)
+	streak.RecordCompletion(day5)
 	if streak.CurrentStreak != 1 || streak.MaxStreak != 2 {
 		t.Errorf("Racha rota: racha actual esperada 1, obtenida %d (max streak debió mantenerse en 2, obtenida %d)", streak.CurrentStreak, streak.MaxStreak)
 	}

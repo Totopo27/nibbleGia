@@ -89,9 +89,10 @@ type StreakState struct {
 	LastActiveDate *time.Time `json:"lastActiveDate,omitempty"`
 }
 
-// RecordCompletion actualiza el cálculo de racha diaria de forma pura en base a fechas.
+// RecordCompletion actualiza el cálculo de racha diaria de forma pura en base a fechas calendario UTC.
 func (s *StreakState) RecordCompletion(now time.Time) {
-	currentDay := now.Truncate(24 * time.Hour)
+	yNow, mNow, dNow := now.UTC().Date()
+	currentDay := time.Date(yNow, mNow, dNow, 0, 0, 0, 0, time.UTC)
 
 	if s.LastActiveDate == nil {
 		s.CurrentStreak = 1
@@ -101,7 +102,8 @@ func (s *StreakState) RecordCompletion(now time.Time) {
 		return
 	}
 
-	lastDay := s.LastActiveDate.Truncate(24 * time.Hour)
+	yLast, mLast, dLast := s.LastActiveDate.UTC().Date()
+	lastDay := time.Date(yLast, mLast, dLast, 0, 0, 0, 0, time.UTC)
 	diffDays := int(currentDay.Sub(lastDay).Hours() / 24)
 
 	if diffDays == 0 {

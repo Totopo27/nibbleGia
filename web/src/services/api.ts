@@ -34,6 +34,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 export const apiService = {
   checkHealth: () => request<{ status: string }>("/api/health"),
   getTopics: () => request<Topic[]>("/api/topics"),
+  getCapsulesByTopic: (topicId: string) => request<Capsule[]>(`/api/topics/${topicId}/capsules`),
   getCapsule: (id: string) => request<Capsule>(`/api/capsules/${id}`),
   submitCheckAttempt: (capsuleId: string, checkId: string, selectedOptionId: string) =>
     request<CheckAttempt>(`/api/capsules/${capsuleId}/checks/${checkId}/attempts`, {

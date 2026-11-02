@@ -64,6 +64,29 @@ func TestGetTopicsEndpoint(t *testing.T) {
 	}
 }
 
+func TestGetCapsulesByTopicEndpoint(t *testing.T) {
+	repo := storage.NewMemoryRepository()
+	server := api.NewServer(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/topics/topic-logic/capsules", nil)
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Código esperado 200, obtenido %d", rec.Code)
+	}
+
+	var capsules []domain.Capsule
+	if err := json.NewDecoder(rec.Body).Decode(&capsules); err != nil {
+		t.Fatalf("Error decodificando cápsulas por tema: %v", err)
+	}
+
+	if len(capsules) < 2 {
+		t.Errorf("Se esperaban al menos 2 cápsulas para topic-logic, obtenidos %d", len(capsules))
+	}
+}
+
 func TestGetCapsuleEndpoint(t *testing.T) {
 	repo := storage.NewMemoryRepository()
 	server := api.NewServer(repo)
